@@ -1,0 +1,20 @@
+[
+    {
+        "id": 1,
+        "username": "niga",
+        "email": "pen@dssd.com",
+        "password": "$2y$10$dcEOom7D\/uQzYBhIZ9HPR.5OY0AwRx0J7zm94l.eroP76EiTxHn9O"
+    },
+    {
+        "id": 2,
+        "username": "manpatikgeji",
+        "email": "test@email.niga",
+        "password": "$2y$10$QiQg\/QrP\/173ci8CXDsFEuv3al62ba4guqXVtmA5PoXDsgUd5XZQy"
+    },
+    {
+        "id": 3,
+        "username": "joedoe",
+        "email": "niga@gmail.cmo",
+        "password": "$2y$10$x3z8kI2WOjwlOf3f2XnjzeXLO.Ztv2qxZOkuveo.6X4cXuZ2vBb1m"
+    }
+]
