@@ -28,5 +28,11 @@
         "username": "test",
         "email": "test",
         "password": "$2y$10$SI865cdu6G5nEsqwNZ5yle1noxKBOOy0Kv7tm0zq2SY49fI6HjiOm"
+    },
+    {
+        "id": 6,
+        "username": "sxadfgbhjk,l.;\/\">;",
+        "email": "rfgththgfyujyhtg",
+        "password": "$2y$10$VbdDxH\/nN1gQkvKdp3DVRO7lLyCcbOx6MUgsMTl9mZWEtHlQyVWDK"
     }
 ]
