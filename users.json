@@ -16,5 +16,17 @@
         "username": "joedoe",
         "email": "niga@gmail.cmo",
         "password": "$2y$10$x3z8kI2WOjwlOf3f2XnjzeXLO.Ztv2qxZOkuveo.6X4cXuZ2vBb1m"
+    },
+    {
+        "id": 4,
+        "username": "Nigger",
+        "email": "gaynigga@gmail.com",
+        "password": "$2y$10$nIcE1Xu9T9qWwT538v7WFOEkccTMMyg6HCPxeboZyBb5l8ItDqTD6"
+    },
+    {
+        "id": 5,
+        "username": "test",
+        "email": "test",
+        "password": "$2y$10$SI865cdu6G5nEsqwNZ5yle1noxKBOOy0Kv7tm0zq2SY49fI6HjiOm"
     }
 ]
