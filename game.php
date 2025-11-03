@@ -5,76 +5,6 @@ error_reporting(E_ALL);
 
 $username = $_SESSION['username'] ?? 'Guest';
 
-$SPOTIFY_CLIENT_ID     = getenv('SPOTIFY_CLIENT_ID') ?: '089a2e52b40f4f23868421b4504b6348';
-$SPOTIFY_CLIENT_SECRET = getenv('SPOTIFY_CLIENT_SECRET') ?: 'f861f40c21554950891f324bc3cff835';
-
-function getSpotifyToken($id, $secret) {
-    if (!$id || !$secret || $id === '089a2e52b40f4f23868421b4504b6348') {
-        return null;
-    }
-    $ch = curl_init('https://accounts.spotify.com/api/token');
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Basic ' . base64_encode($id . ':' . $secret),
-        'Content-Type: application/x-www-form-urlencoded'
-    ]);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, 'grant_type=client_credentials');
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    $res = curl_exec($ch);
-    if ($res === false) {
-        curl_close($ch);
-        return null;
-    }
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    if ($httpCode !== 200) {
-        return null;
-    }
-    $data = json_decode($res, true);
-    return $data['access_token'] ?? null;
-}
-
-function searchRandomTrackWithPreview($token, $attempts = 10) {
-    if (!$token) return null;
-    $queries = ['a','e','i','o','u','the','love','pop','rock','remix','dance','2020','2021','2022','2023','beat','girl','boy','night','home'];
-    for ($i = 0; $i < $attempts; $i++) {
-        $q = rawurlencode($queries[array_rand($queries)]);
-        $url = "https://api.spotify.com/v1/search?q={$q}&type=track&limit=50";
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Bearer $token"]);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        $res = curl_exec($ch);
-        if ($res === false) {
-            curl_close($ch);
-            continue;
-        }
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        if ($httpCode !== 200) {
-            continue;
-        }
-        $data = json_decode($res, true);
-        $items = $data['tracks']['items'] ?? [];
-        if (empty($items)) continue;
-        shuffle($items);
-        foreach ($items as $t) {
-            $image = $t['album']['images'][0]['url'] ?? null;
-            $preview = $t['preview_url'] ?? null;
-            if ($image) {
-                return [
-                    'image' => $image,
-                    'preview_url' => $preview,
-                    'name' => $t['name'] ?? '',
-                    'artist' => $t['artists'][0]['name'] ?? ''
-                ];
-            }
-        }
-    }
-    return null;
-}
-
 function normalize_answer($s) {
     $s = mb_strtolower((string)$s, 'UTF-8');
     $s = preg_replace('/[^a-z0-9\s]/u', ' ', $s);
@@ -86,89 +16,13 @@ if (!isset($_SESSION['score'])) $_SESSION['score'] = 0;
 if (!isset($_SESSION['attempts'])) $_SESSION['attempts'] = 0;
 if (!isset($_SESSION['round'])) $_SESSION['round'] = 1;
 
-$preview = null;
-$useSpotify = false;
-if ($SPOTIFY_CLIENT_ID !== '089a2e52b40f4f23868421b4504b6348' && $SPOTIFY_CLIENT_SECRET !== 'f861f40c21554950891f324bc3cff835') {
-    $token = getSpotifyToken($SPOTIFY_CLIENT_ID, $SPOTIFY_CLIENT_SECRET);
-    if ($token) {
-        $preview = searchRandomTrackWithPreview($token, 10);
-        if ($preview) $useSpotify = true;
-    }
-}
-
-$coverSrc = '';
-$trackLabel = 'Unknown';
-$answer = '';
-
-if ($preview && $useSpotify) {
-    $coverSrc = $preview['image'] ?? '';
-    $trackLabel = trim(($preview['name'] ?? '') . ' – ' . ($preview['artist'] ?? ''));
-    $answer = normalize_answer(($preview['name'] ?? '') . ' ' . ($preview['artist'] ?? ''));
-} else {
-    $searchDirs = [__DIR__ . '/audio', __DIR__];
-    $imgExts = ['jpg','jpeg','png','webp'];
-    $foundImage = '';
-    foreach ($searchDirs as $d) {
-        if (!is_dir($d)) continue;
-        foreach ($imgExts as $ext) {
-            $matches = glob($d . '/*.' . $ext) ?: [];
-            if (!empty($matches)) { $foundImage = $matches[array_rand($matches)]; break 2; }
-        }
-    }
-    if ($foundImage) {
-        $rel = str_replace('\\', '/', str_replace(__DIR__, '', $foundImage));
-        $rel = ltrim($rel, '/');
-        $coverSrc = $rel;
-        $trackLabel = basename($foundImage);
-        $base = pathinfo($foundImage, PATHINFO_FILENAME);
-        $answer = normalize_answer(str_replace(['_','-'], ' ', $base));
-    } else {
-        if (file_exists(__DIR__ . '/cover.jpg')) {
-            $coverSrc = 'cover.jpg';
-            $trackLabel = 'Cover';
-            $answer = 'unknown';
-        } else {
-            $coverSrc = '';
-            $trackLabel = 'No cover found';
-            $answer = 'unknown';
-        }
-    }
-}
-
-if (!empty($coverSrc)) {
-    if (preg_match('#^https?://#i', $coverSrc)) {
-    } else {
-        $localPath = __DIR__ . '/' . ltrim($coverSrc, '/\\');
-        if (file_exists($localPath)) {
-            $coverSrc = str_replace('\\', '/', ltrim(str_replace(__DIR__, '', $localPath), '/'));
-        } else {
-            $try1 = __DIR__ . '/audio/' . ltrim($coverSrc, '/\\');
-            $try2 = __DIR__ . '/' . ltrim($coverSrc, '/\\');
-            if (file_exists($try1)) {
-                $coverSrc = str_replace('\\','/', ltrim(str_replace(__DIR__, '', $try1), '/'));
-            } elseif (file_exists($try2)) {
-                $coverSrc = str_replace('\\','/', ltrim(str_replace(__DIR__, '', $try2), '/'));
-            } else {
-                $coverSrc = '';
-            }
-        }
-    }
-}
-
-$_SESSION['current_track'] = [
-    'image' => $coverSrc,
-    'label' => $trackLabel,
-    'answer' => $answer
-];
-
-if (isset($_GET['debug']) && $_GET['debug'] == '1') {
-    echo '<pre style="background:#111;color:#ddd;padding:10px;">';
-    echo "coverSrc: " . var_export($coverSrc, true) . PHP_EOL;
-    echo "trackLabel: " . var_export($trackLabel, true) . PHP_EOL;
-    echo "answer: " . var_export($answer, true) . PHP_EOL;
-    echo "session_current_track:" . PHP_EOL;
-    print_r($_SESSION['current_track']);
-    echo '</pre>';
+if (!isset($_SESSION['current_track'])) {
+    $_SESSION['current_track'] = [
+        'image' => '',
+        'label' => 'Click "Get Random Song" to start',
+        'answer' => '',
+        'preview_url' => ''
+    ];
 }
 ?>
 <!doctype html>
@@ -194,17 +48,15 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
 
   <main class="player">
     <div class="art">
-      <?php if (!empty($_SESSION['current_track']['image'])): ?>
-        <img id="cover" src="<?php echo htmlspecialchars($_SESSION['current_track']['image']); ?>" alt="Album cover" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">
-      <?php else: ?>
-        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px;padding:12px;">
-          No cover available — guess by title/artist hint
-        </div>
-      <?php endif; ?>
+      <img id="cover" src="" alt="Album cover" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:none;">
+      <div id="coverPlaceholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px;padding:12px;">
+        Click "Get Random Song" to load a cover
+      </div>
     </div>
 
     <div class="controls" style="margin-top:12px">
-      <div style="margin-top:8px;color:var(--muted);font-size:13px;"><?php echo htmlspecialchars($trackLabel); ?></div>
+      <audio id="player" controls style="width:100%;margin-bottom:8px;display:<?php echo !empty($_SESSION['current_track']['preview_url']) ? 'block' : 'none'; ?>"></audio>
+      <div style="margin-top:8px;color:var(--muted);font-size:13px;" id="trackLabel"><?php echo htmlspecialchars($_SESSION['current_track']['label']); ?></div>
     </div>
 
     <form id="guessForm" class="guessbox" onsubmit="return false;">
@@ -212,11 +64,12 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
       <button id="submitBtn" type="button">Guess</button>
     </form>
 
-    <div class="hint">Look at the album cover and guess the song. Press Enter to submit.</div>
+    <div class="hint">Look at the album cover and listen to the preview. Press Enter to submit.</div>
     
     <div style="margin-top:16px;display:flex;gap:8px;">
-      <button onclick="location.href='game.php'" style="flex:1;background:var(--accent);color:var(--bg);border:none;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">New Cover</button>
-      <button onclick="revealAnswer()" style="flex:1;background:rgba(255,255,255,0.1);color:var(--muted);border:none;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">Reveal Answer</button>
+      <button id="newSongBtn" style="flex:1;background:var(--accent);color:var(--bg);border:none;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">Get Random Song</button>
+      <button id="hintBtn" style="flex:1;background:rgba(255,255,255,0.1);color:var(--muted);border:none;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">Show Cover (Hint)</button>
+      <button onclick="revealAnswer()" style="background:rgba(255,255,255,0.05);color:var(--muted);border:none;padding:10px 16px;border-radius:8px;cursor:pointer;">Reveal Answer</button>
       <button onclick="location.href='logout.php'" style="background:rgba(255,255,255,0.05);color:var(--muted);border:none;padding:10px 16px;border-radius:8px;cursor:pointer;">Logout</button>
     </div>
   </main>
@@ -249,6 +102,101 @@ const submit = document.getElementById('submitBtn');
 const guessesEl = document.getElementById('guesses');
 const attemptsEl = document.getElementById('attempts');
 const scoreEl = document.getElementById('score');
+const player = document.getElementById('player');
+const newSongBtn = document.getElementById('newSongBtn');
+const hintBtn = document.getElementById('hintBtn');
+const coverImg = document.getElementById('cover');
+const coverPlaceholder = document.getElementById('coverPlaceholder');
+const trackLabel = document.getElementById('trackLabel');
+
+let currentTrack = null;
+
+// Get random song from iTunes API
+async function getRandomSong() {
+  const randomTerms = ["pop", "rock", "hiphop", "jazz", "classical", "country", "dance", "indie", "soul", "funk"];
+  const searchTerm = randomTerms[Math.floor(Math.random() * randomTerms.length)];
+
+  try {
+    const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=song&limit=50`);
+    const data = await response.json();
+
+    if (!data.results || data.results.length === 0) {
+      alert("Couldn't find any songs, try again.");
+      return;
+    }
+
+    // Pick a random track from the results that has a preview
+    let track = null;
+    const shuffled = data.results.sort(() => 0.5 - Math.random());
+    for (let t of shuffled) {
+      if (t.previewUrl) {
+        track = t;
+        break;
+      }
+    }
+
+    if (!track) {
+      alert("No tracks with preview found, try again.");
+      return;
+    }
+
+    currentTrack = track;
+
+    // store artwork url but DO NOT show it yet
+    const artworkUrl = track.artworkUrl100.replace('100x100', '600x600');
+    coverImg.style.display = 'none';
+    coverImg.src = '';
+    coverPlaceholder.style.display = 'flex';
+
+    // Load preview audio
+    player.src = track.previewUrl;
+    player.style.display = 'block';
+    try { player.play(); } catch(e){}
+
+    // Update label
+    trackLabel.textContent = '🎧 Listening... Guess the song!';
+
+    // Save to session via AJAX
+    await fetch('save_track.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        image: artworkUrl,
+        label: `${track.trackName} – ${track.artistName}`,
+        answer: normalize_answer(`${track.trackName} ${track.artistName}`),
+        preview_url: track.previewUrl,
+        track_name: track.trackName,
+        artist_name: track.artistName
+      })
+    });
+
+    // store artwork locally in JS for hint button
+    currentTrack.artworkUrl = artworkUrl;
+
+  } catch (err) {
+    console.error('Error fetching song:', err);
+    alert('Error loading song. Please try again.');
+  }
+}
+
+function normalize_answer(s) {
+  s = s.toLowerCase();
+  s = s.replace(/[^a-z0-9\s]/g, ' ');
+  s = s.replace(/\s+/g, ' ');
+  return s.trim();
+}
+
+newSongBtn.addEventListener('click', getRandomSong);
+
+hintBtn.addEventListener('click', () => {
+  if (!currentTrack || !currentTrack.artworkUrl) {
+    alert('No cover available. Get a random song first.');
+    return;
+  }
+  coverImg.src = currentTrack.artworkUrl;
+  coverImg.style.display = 'block';
+  coverPlaceholder.style.display = 'none';
+});
 
 if (input && submit) {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') doGuess(); });
@@ -258,29 +206,35 @@ if (input && submit) {
 async function doGuess(){
   const val = input.value.trim();
   if (!val) return;
-  
+  if (!currentTrack) {
+    alert('Get a song first!');
+    return;
+  }
   const guessDiv = addGuess(val,'⏳ Checking...');
   input.value = '';
-  
   try {
-    const res = await fetch('guess.php', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ guess: val })
-    });
-    const j = await res.json();
-    
+    const userGuess = normalize_answer(val);
+    const correctSong = normalize_answer(currentTrack.trackName || '');
+    const correctArtist = normalize_answer(currentTrack.artistName || '');
     const currentAttempts = parseInt(attemptsEl.textContent) + 1;
     attemptsEl.textContent = currentAttempts;
-    
-    if (j.correct) {
+    const isCorrect = (userGuess && (userGuess.includes(correctSong) || correctSong.includes(userGuess) || userGuess.includes(correctArtist) || correctArtist.includes(userGuess)));
+    if (isCorrect) {
       updateGuessStatus(guessDiv, '✓ Correct!', '#1db954');
       const currentScore = parseInt(scoreEl.textContent) + Math.max(100 - (currentAttempts * 10), 10);
       scoreEl.textContent = currentScore;
-      
+      player.pause();
       setTimeout(() => {
-        alert('🎉 Correct! The answer was: ' + (j.revealed || 'the song'));
+        alert(`🎉 Correct! It was "${currentTrack.trackName}" by ${currentTrack.artistName}`);
       }, 300);
+      await fetch('update_score.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          score: parseInt(scoreEl.textContent),
+          attempts: currentAttempts
+        })
+      });
     } else {
       updateGuessStatus(guessDiv, '✗ Wrong', '#ff4444');
     }
@@ -307,12 +261,13 @@ function updateGuessStatus(div, status, color){
 }
 
 function revealAnswer() {
+  if (!currentTrack) {
+    alert('Get a song first!');
+    return;
+  }
   if (confirm('Are you sure you want to reveal the answer?')) {
-    fetch('reveal.php')
-      .then(r => r.json())
-      .then(j => {
-        alert('The answer was: ' + j.answer);
-      });
+    alert(`The answer was: "${currentTrack.trackName}" by ${currentTrack.artistName}`);
+    player.pause();
   }
 }
 
