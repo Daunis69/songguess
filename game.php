@@ -75,25 +75,54 @@ if (!isset($_SESSION['current_track'])) {
   </main>
 
   <aside class="sidebar">
-      <div>
-          <div class="section-title">Guesses</div>
-          <div id="guesses" class="guesses"></div>
-      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+          <div>
+              <div class="section-title">Guesses</div>
+              <div id="guesses" class="guesses"></div>
+          </div>
 
-      <div style="margin-top:16px">
-          <div class="section-title">Stats</div>
-          <div style="display:flex;gap:10px">
-              <div style="flex:1;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;text-align:center">
-                  <div style="font-size:20px" id="attempts"><?php echo $_SESSION['attempts']; ?></div>
-                  <div class="status">Attempts</div>
+          <div>
+              <div class="section-title">Filters</div>
+              <div style="display:flex;flex-direction:column;gap:8px;padding:10px;background:rgba(255,255,255,0.02);border-radius:8px">
+                  <label style="font-size:13px;color:var(--muted)">Genre</label>
+                  <select id="genreSelect" style="padding:8px;border-radius:6px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,0.04)">
+                      <option value="">Any</option>
+                      <option>pop</option>
+                      <option>rock</option>
+                      <option>hiphop</option>
+                      <option>jazz</option>
+                      <option>classical</option>
+                      <option>country</option>
+                      <option>electronic</option>
+                      <option>indie</option>
+                      <option>soul</option>
+                  </select>
+
+                  <label style="font-size:13px;color:var(--muted)">Artist (optional)</label>
+                  <input id="artistInput" placeholder="Enter artist name" style="padding:8px;border-radius:6px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,0.04)">
+
+                  <div style="display:flex;gap:8px;margin-top:6px">
+                      <button id="applyFiltersBtn" style="flex:1;padding:8px;border-radius:6px;border:none;background:linear-gradient(180deg,var(--accent),var(--accent-2));color:var(--bg);cursor:pointer">Apply</button>
+                      <button id="clearFiltersBtn" style="flex:1;padding:8px;border-radius:6px;border:none;background:rgba(255,255,255,0.03);color:var(--muted);cursor:pointer">Clear</button>
+                  </div>
               </div>
-              <div style="flex:1;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;text-align:center">
-                  <div style="font-size:20px" id="score"><?php echo $_SESSION['score']; ?></div>
-                  <div class="status">Score</div>
+          </div>
+
+          <div>
+              <div class="section-title">Stats</div>
+              <div style="display:flex;gap:10px">
+                  <div style="flex:1;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;text-align:center">
+                      <div style="font-size:20px" id="attempts"><?php echo $_SESSION['attempts']; ?></div>
+                      <div class="status">Attempts</div>
+                  </div>
+                  <div style="flex:1;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;text-align:center">
+                      <div style="font-size:20px" id="score"><?php echo $_SESSION['score']; ?></div>
+                      <div class="status">Score</div>
+                  </div>
               </div>
           </div>
       </div>
-  </aside>
+   </aside>
 </div>
 
 <script>
@@ -110,22 +139,46 @@ const coverPlaceholder = document.getElementById('coverPlaceholder');
 const trackLabel = document.getElementById('trackLabel');
 
 let currentTrack = null;
+let activeGenre = '';
+let activeArtist = '';
 
-// Get random song from iTunes API
+// new UI elements
+const genreSelect = document.getElementById('genreSelect');
+const artistInput = document.getElementById('artistInput');
+const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+applyFiltersBtn.addEventListener('click', () => {
+  activeGenre = genreSelect.value || '';
+  activeArtist = artistInput.value.trim();
+  alert('Filters applied: ' + (activeArtist || activeGenre || 'None'));
+});
+
+clearFiltersBtn.addEventListener('click', () => {
+  genreSelect.value = '';
+  artistInput.value = '';
+  activeGenre = '';
+  activeArtist = '';
+  alert('Filters cleared');
+});
+
+// Get random song from iTunes API (uses filters if set)
 async function getRandomSong() {
-  const randomTerms = ["pop", "rock", "hiphop", "jazz", "classical", "country", "dance", "indie", "soul", "funk"];
-  const searchTerm = randomTerms[Math.floor(Math.random() * randomTerms.length)];
-
+  let searchTerms = [];
+  if (activeArtist) searchTerms.push(activeArtist);
+  if (activeGenre) searchTerms.push(activeGenre);
+  if (searchTerms.length === 0) {
+    const randomTerms = ["pop", "rock", "hiphop", "jazz", "classical", "country", "dance", "indie", "soul", "funk"];
+    searchTerms.push(randomTerms[Math.floor(Math.random() * randomTerms.length)]);
+  }
+  const searchTerm = searchTerms.join(' ');
   try {
     const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=song&limit=50`);
     const data = await response.json();
-
     if (!data.results || data.results.length === 0) {
-      alert("Couldn't find any songs, try again.");
+      alert("Couldn't find any songs, try a different filter.");
       return;
     }
-
-    // Pick a random track from the results that has a preview
     let track = null;
     const shuffled = data.results.sort(() => 0.5 - Math.random());
     for (let t of shuffled) {
@@ -134,29 +187,19 @@ async function getRandomSong() {
         break;
       }
     }
-
     if (!track) {
       alert("No tracks with preview found, try again.");
       return;
     }
-
     currentTrack = track;
-
-    // store artwork url but DO NOT show it yet
     const artworkUrl = track.artworkUrl100.replace('100x100', '600x600');
     coverImg.style.display = 'none';
     coverImg.src = '';
     coverPlaceholder.style.display = 'flex';
-
-    // Load preview audio
     player.src = track.previewUrl;
     player.style.display = 'block';
     try { player.play(); } catch(e){}
-
-    // Update label
     trackLabel.textContent = '🎧 Listening... Guess the song!';
-
-    // Save to session via AJAX
     await fetch('save_track.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -169,10 +212,7 @@ async function getRandomSong() {
         artist_name: track.artistName
       })
     });
-
-    // store artwork locally in JS for hint button
     currentTrack.artworkUrl = artworkUrl;
-
   } catch (err) {
     console.error('Error fetching song:', err);
     alert('Error loading song. Please try again.');
