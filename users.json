@@ -40,5 +40,11 @@
         "username": "gayshit",
         "email": "gayshit",
         "password": "$2y$10$QEusnwi3mAfiAUrThWyQf.a\/xNAeHvomnngkZ9lTHduNfh\/2PmnAe"
+    },
+    {
+        "id": 8,
+        "username": "insanus",
+        "email": "insanus@shityourself.com",
+        "password": "$2y$10$.KnTj.3x..QHCXIKy0AQl.nI.bmPhsicwBGZXi.bKPAZIijXFyn4u"
     }
 ]
