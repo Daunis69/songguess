@@ -46,5 +46,35 @@
         "username": "insanus",
         "email": "insanus@shityourself.com",
         "password": "$2y$10$.KnTj.3x..QHCXIKy0AQl.nI.bmPhsicwBGZXi.bKPAZIijXFyn4u"
+    },
+    {
+        "id": 9,
+        "username": "lomosaurus",
+        "email": "daniksirgejs@gmail.com",
+        "password": "$2y$10$DI1iRMqoK7txqac.OMZ7Z.pA.wTB3\/NcqIj9uMagy0ADEOwrMZ7ka"
+    },
+    {
+        "id": 10,
+        "username": "niga222",
+        "email": "niga",
+        "password": "$2y$10$P7lB80t32W9n\/M72il00W.N2tklzkcTPphUkov9VW8KYtJXbdr71e"
+    },
+    {
+        "id": 11,
+        "username": "1222",
+        "email": "222",
+        "password": "$2y$10$F1kGgcIf8Ws5V8UcL5rM0OnDa6uA4nIB25vRWatY96cehRzm9gYP."
+    },
+    {
+        "id": 12,
+        "username": "22222",
+        "email": "22",
+        "password": "$2y$10$3WC3RNb3JzrjWatzyuh5seQV3dH87QLPL6JE9EDxO.PrGoppEuMYC"
+    },
+    {
+        "id": 13,
+        "username": "test1",
+        "email": "test1",
+        "password": "$2y$10$CfU4VdFD2sKQ66sVaJMW9OTbnp.gbxjFSBaiR72gq\/44nF0Dvo93i"
     }
 ]
