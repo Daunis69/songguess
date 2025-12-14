@@ -43,7 +43,7 @@ if (!isset($_SESSION['current_track'])) {
               <div class="user"><?php echo htmlspecialchars($username); ?></div>
           </div>
       </div>
-      <div class="user">Round <?php echo $_SESSION['round']; ?> • Guess the song by its album cover</div>
+      <div class="user">Round <?php echo $_SESSION['round']; ?> • Guess the song</div>
   </header>
 
   <main class="player">
